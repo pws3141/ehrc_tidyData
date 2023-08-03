@@ -1,0 +1,16 @@
+Package: tidyData
+Version: 0.2
+Date: 2023-08-03
+Title: EHRC Tidy Data
+Description: Function to tidy EHRC data tables released alongside statutory report.
+Author: Paul Smith [aut, cre]
+    Arturo Lonighi [aut]
+Maintainer: Paul Smith <xxxxxxxx@posteo.net>
+Imports:
+        stats,
+        readxl,
+        reshape2,
+        tidyr,
+        writexl
+License: GPL-3
+RoxygenNote: 7.2.3
