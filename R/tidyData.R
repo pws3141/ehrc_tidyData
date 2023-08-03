@@ -1,11 +1,34 @@
-## required libraries
-#library(readxl) # real_xlsx
-#library(writexl) # write_xlsx
-#library(reshape2) # melt, dcast
-#library(tidyr) # separate
-source("./tidyData_util.R")
+#' Tidying EHRC data tables
+#' 
+#' Creates a data.frame and an (optional) excel spreadsheet with data from the EHRC
+#' spreadsheets released alongside the statutory reporting.
+#'
+#' @param name name of excel spreadsheet to tidy
+#' @param sheets a number or vector corresponding to which worksheet is being tidied
+#' @param skip number of rows to be deleted from the top of the spreadsheet (the
+#' first required row is the one with the years in)
+#' @param path the path of the excel spreadsheet
+#' @param save excel spreadsheet output required (TRUE / FALSE)
+#' @param name_out name of excel spreadsheet to be ouput (requires save = TRUE)
+#'
+#' @return data.frame and (optional) excel spreadsheet with tidied data
+#'
+#' @examples
+#'  df <- tidyData(name = "WRK.EMP.1.xlsx", sheets = 2, 
+#'                 skip = 10, path = "", save = TRUE)
+#'  
+#'  sheets = c(2, 3, 4, 5)
+#'  df <- tidyData(name = "WRK.EMP.1.xlsx", sheets = sheets, 
+#'                 skip = 10, path = "", save = TRUE,
+#'                 name_out = "WRK.EMP.1_employment")
+#' @import stats
+#' @import readxl
+#' @import reshape2
+#' @import tidyr
+#' @import writexl
 
-tidyData <- function(name, sheets, skip, path = "", save = FALSE, name_out = "output") {
+#' @export
+tidyData <- function(name, sheets, skip = 10, path = "", save = FALSE, name_out = "output") {
   # name: name of excel file. Must end with file type e.g. '.xlsx'
   # sheets: vector of worksheet numbers
   # skip (numeric): how many rows to remove when loading excel file
@@ -67,13 +90,6 @@ Sourced \'tidyData.R\', to tidy up EHRC data tables.
   time.taken
   
   
-  df <- tidyData(name = "WRK.EMP.1.xlsx", sheets = 2, 
-                 skip = 10, path = "", save = TRUE)
-  
-  sheets = c(2, 3, 4, 5)
-  df <- tidyData(name = "WRK.EMP.1.xlsx", sheets = sheets, 
-                 skip = 10, path = "", save = TRUE,
-                 name_out = "WRK.EMP.1_employment")
   
   
 } ## end if (TEST) 

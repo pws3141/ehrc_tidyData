@@ -9,36 +9,47 @@
   # Out: vector of new group names
   
   # list of index values which 'groups' is NA
-  groups_NA <- which(is.na(groups))
-  # remove indices of NA's that are at the beginning of 'groups'
-  groups_NA <- groups_NA[-which(groups_NA == 1:length(groups_NA))]
+  groups_NA_index <- which(is.na(groups))
   # index_vector initialisation
   index_vector <- rep(1, length.out = length(groups))
-  for (i in 1:length(groups_NA)) {
-    tmp_elt <- groups_NA[i]
-    # check that the previous category is the same as the next
-    # e.g. (... ,"hello", NA, "hello", ...)
-    bool_check <- (groups[tmp_elt - 1] == groups[tmp_elt + 1])
-    if (!is.na(bool_check) && bool_check) {
-      # if TRUE, add 1 to index vector from element
-      # 'groups[tmp_elt + 1]' to 'groups[groups_NA[i + 1] - 1'
-      # i.e. from this NA to the next NA
-      # assume that all same groups are adjacent to each other in data tables
-      # TODO: remove this assumption
-      # add 1 to the next group if same as previous
-      # nb all data tables start with 'All' will never get neg index here:
-      previous_group <- index_vector[tmp_elt - 1]
-      elts_change <- (tmp_elt + 1):(groups_NA[i + 1] - 1)
-      index_vector[elts_change] = index_vector[elts_change] + previous_group
-    }
+  # unique number initialisation
+  number_vector <- 1:length(groups_NA_index)
+  # create unique index for every group
+  for (i in 1:length(groups_NA_index)) {
+          number_from <- groups_NA_index[i]
+          if (i == length(groups_NA_index)) {
+                  number_to <- length(groups)
+          } else {
+                  number_to <- groups_NA_index[i + 1] - 1
+          }
+          # replace index vector with new number
+          index_vector[number_from:number_to] <- number_vector[i]
   }
-  # Concatenate name of groups with index_vector
-  # except where groups is NA and/ or index_vector is 1
-  # as index is 1 for all groups NA, can just look at index_vector > 1
-  which_greater1 <- which(index_vector > 1)
-  #which_conc <- groups_not_NA[groups_not_NA %in% which_greater1]
-  groups[which_greater1] <- paste0(groups[which_greater1], 
-                                   index_vector[which_greater1])
+  # create new grouping names appended by unique index number
+  for (i in 1:length(groups)) {
+        if (!is.na(groups[i])) {
+                    groups[i] <- paste(groups[i], index_vector[i],
+                                            sep = "_")
+        }
+  }
+  # vector of unique groups
+  groups_unique <- na.omit(unique(groups))
+  # if more than 1 category in group, then change to
+  # 'group (x categories)'
+  for (group in groups_unique) {
+        which_group <- which(groups %in% group)
+        # remove underscore and index value
+        group_new <- gsub("_[[:digit:]]+$", "", group)
+        if (length(which_group) > 1) {
+                # append "(x categories)"
+                categories <- sprintf("(%d categories)", 
+                                      length(which_group))
+                group_new <- paste(group_new, categories)
+        }
+        # replace names in original 'groups' vector
+        groups[which_group] <- group_new
+  }
+
   # output
   groups
 }
@@ -133,6 +144,14 @@
   # insert new 'groups' into data frame
   dataFrame[, 1] <- groups
   
+  # replace unnecessary  punctuation and words with 'NA'
+  to_remove <- c("-", "*", "**", "***", ".", "END", "Stars", "Blank")
+
+  for (rem in to_remove) {
+          which_ind <- which(dataFrame == rem, arr.ind = TRUE)
+          dataFrame[which_ind] <- NA
+  }
+
   # remove rows that are all na
   all_na_rows <- rowSums(is.na(dataFrame)) < ncol(dataFrame)
   dataFrame <- dataFrame[all_na_rows, ]
@@ -162,20 +181,14 @@
   # tidying up data frame
   dataFrame <- as.data.frame(t(dataFrame))
   colnames(dataFrame) <- c("year_beg", "year_end", "statistic", col_names)
-  # remove column with 'END' in
-  dataFrame <- dataFrame[, -dim(dataFrame)[2]]
+
   # remove top two rows with variables/ levels
   dataFrame <- dataFrame[-(1:2), ]
-  # remove rows which only containt significance stars '**'
-  star_rows <- rbind(which(dataFrame == "*", arr.ind = TRUE), 
-                     which(dataFrame == "**", arr.ind = TRUE), 
-                     which(dataFrame == "***", arr.ind = TRUE))
-  dataFrame <- dataFrame[-unique(star_rows[, 1]), ]
+
   # set years cols to be numeric
   dataFrame[, 1:2] <- sapply(dataFrame[, 1:2], as.numeric)
+
   # set cols of data to be dumeric
-  # nb. warning here is good:
-  #   changing the '-' empty elements to NA
   dataFrame[, 4:dim(dataFrame)[2]] <- sapply(dataFrame[, 4:dim(dataFrame)[2]], as.numeric)
   
   # melt
