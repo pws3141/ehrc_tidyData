@@ -1,5 +1,5 @@
 Package: tidyData
-Version: 0.2
+Version: 0.3
 Date: 2023-08-03
 Title: EHRC Tidy Data
 Description: Function to tidy EHRC data tables released alongside statutory report.
@@ -11,6 +11,9 @@ Imports:
         readxl,
         reshape2,
         tidyr,
-        writexl
+        writexl,
+        plyr,
+        stringr
 License: GPL-3
+Encoding: UTF-8
 RoxygenNote: 7.2.3

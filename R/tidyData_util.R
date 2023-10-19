@@ -34,13 +34,13 @@
   }
   # vector of unique groups
   groups_unique <- na.omit(unique(groups))
-  # if more than 1 category in group, then change to
+  # if more than 2 category in group, then change to
   # 'group (x categories)'
   for (group in groups_unique) {
         which_group <- which(groups %in% group)
         # remove underscore and index value
         group_new <- gsub("_[[:digit:]]+$", "", group)
-        if (length(which_group) > 1) {
+        if (length(which_group) > 2) {
                 # append "(x categories)"
                 categories <- sprintf("(%d categories)", 
                                       length(which_group))
@@ -84,7 +84,6 @@
     # split by deliminator
     years_df <- data.frame(do.call('rbind', strsplit(as.character(years_df), '/', fixed = TRUE)))
     # could use 'separate' here, but would need to transpose data frame first
-    #df <- within(df, years <- dataFrame(do.call('rbind', strsplit(as.character(years), '/', fixed = TRUE))))
     years_df <- sapply(years_df, as.numeric)
     years_df[, 2] <- years_df[, 2] + 2000
     years_df <- as.data.frame(t(years_df))
@@ -110,6 +109,8 @@
 
   # replace % with 'perc'
   statistics <- gsub("%", "perc", statistics)
+  # if statistic is 'Per_100' or similar, replace with 'perc'
+  statistics <- gsub("(?i)per_?100", "perc", statistics)
 
   # remove brackets and everything within
   statistics <- gsub(r"{\s*\([^\)]+\)}","", statistics)
@@ -134,65 +135,69 @@
 }#}}}
 
 #### function to tidy each spreadsheet independently
-.tidyDataFrame <- function(dataFrame) {#{{{
+.tidyDataFrame <- function(df) {#{{{
   # input: data frame
   # output: tidy-er data frame
 
   # rename groups that appear > once
-  #groups <- dataFrame[, 1]
-  groups <- .duplicateGroups(groups = dataFrame[, 1])
+  groups <- .duplicateGroups(groups = df[, 1])
   # insert new 'groups' into data frame
-  dataFrame[, 1] <- groups
+  df[, 1] <- groups
   
   # replace unnecessary  punctuation and words with 'NA'
+  # first, remove any leading or trailing space
+  cols_characters <- which(vapply(df, is.character, logical(1)) == TRUE)
+  df[, cols_characters] <- lapply(df[, cols_characters], stringr::str_trim)
+  # now, remove punct and words 
   to_remove <- c("-", "*", "**", "***", ".", "END", "Stars", "Blank")
 
   for (rem in to_remove) {
-          which_ind <- which(dataFrame == rem, arr.ind = TRUE)
-          dataFrame[which_ind] <- NA
+          which_ind <- which(df == rem, arr.ind = TRUE)
+          df[which_ind] <- NA
   }
 
   # remove rows that are all na
-  all_na_rows <- rowSums(is.na(dataFrame)) < ncol(dataFrame)
-  dataFrame <- dataFrame[all_na_rows, ]
+  all_na_rows <- rowSums(is.na(df)) < ncol(df)
+  df <- df[all_na_rows, ]
   
   # remove cols that are all na
-  all_na_cols <- colSums(is.na(dataFrame)) < nrow(dataFrame)
-  dataFrame <- dataFrame[, all_na_cols]
+  all_na_cols <- colSums(is.na(df)) < nrow(df)
+  df <- df[, all_na_cols]
   
   # extract first row
-  years <- unlist(dataFrame[1,], use.names = FALSE) 
+  years <- unlist(df[1,], use.names = FALSE) 
   years_df <- .tidyYears(years)
   
   # replace years row of df with the two new rows
-  colnames(years_df) <- colnames(dataFrame)
-  dataFrame <- rbind(years_df, dataFrame[-1, ])
+  colnames(years_df) <- colnames(df)
+  df <- rbind(years_df, df[-1, ])
   
   # extract statistics and tidy
-  statistics <- .tidyStatistics(dataFrame[3, ])
+  statistics <- .tidyStatistics(df[3, ])
   
   # change them in the data_frame
-  dataFrame[3, ] <- statistics
+  df[3, ] <- statistics
   
   # merge variables and levels together
   # to help with 'melt' later
-  col_names = paste(dataFrame[, 1], dataFrame[, 2], sep = "_")[-(1:3)]
+  col_names = paste(df[, 1], df[, 2], sep = "_")[-(1:3)]
 
   # tidying up data frame
-  dataFrame <- as.data.frame(t(dataFrame))
-  colnames(dataFrame) <- c("year_beg", "year_end", "statistic", col_names)
+  df <- as.data.frame(t(df))
+  colnames(df) <- c("year_beg", "year_end", "statistic", col_names)
 
   # remove top two rows with variables/ levels
-  dataFrame <- dataFrame[-(1:2), ]
+  df <- df[-(1:2), ]
+
 
   # set years cols to be numeric
-  dataFrame[, 1:2] <- sapply(dataFrame[, 1:2], as.numeric)
+  df[, 1:2] <- sapply(df[, 1:2], as.numeric)
 
-  # set cols of data to be dumeric
-  dataFrame[, 4:dim(dataFrame)[2]] <- sapply(dataFrame[, 4:dim(dataFrame)[2]], as.numeric)
+  # set cols of data to be numeric
+  df[, 4:dim(df)[2]] <- sapply(df[, 4:dim(df)[2]], as.numeric)
   
   # melt
-  df_melt <- reshape2::melt(dataFrame, id = c("year_beg", "year_end", "statistic"), na.rm = FALSE)
+  df_melt <- reshape2::melt(df, id = c("year_beg", "year_end", "statistic"), na.rm = FALSE)
   
   # dcast to make statistics columns
   # use 'factor' o.w. columns are ordered alphabetically
@@ -202,12 +207,25 @@
   
   # split variables and levels into two columns
   # use 'separate' from 'tidyr'
-  #df_dcast <- within(df_dcast,
-  #variable <- dataFrame(do.call('rbind',
-  #strsplit(as.character(variable),
-  #'_', fixed = TRUE)))
   df_dcast <- tidyr::separate(data = df_dcast, col = variable, into = c("variable", "level"), sep = '_')
   
   # res
   df_dcast
+}
+
+.tidyDataClean <- function(df) {
+        # remove rows where SE / point estimate > 0.5,
+        # or where SE does not exist
+
+        # se column is consistent, but sometimes point estimate is percentage,
+        # sometimes something else.
+        # but it is always the column that preceeds 'se',
+        # so find 'se' column to find point estimate column
+        which_col_se <- which(names(df) == "se")
+        # find which se / point_estimate > 0.5, or NA
+        error_prop <- df[which_col_se] / df[(which_col_se - 1)]
+        to_keep <- which(!(is.na(error_prop) | error_prop > 0.5))
+        # keep rows
+        df <- df[to_keep, ]
+        return(df)
 }

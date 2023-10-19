@@ -4,7 +4,15 @@
 \alias{tidyData}
 \title{Tidying EHRC data tables}
 \usage{
-tidyData(name, sheets, skip = 10, path = "", save = FALSE, name_out = "output")
+tidyData(
+  name,
+  sheets,
+  skip = 10,
+  path = "",
+  clean = TRUE,
+  save = FALSE,
+  name.out = "output"
+)
 }
 \arguments{
 \item{name}{name of excel spreadsheet to tidy}
@@ -16,9 +24,12 @@ first required row is the one with the years in)}
 
 \item{path}{the path of the excel spreadsheet}
 
+\item{clean}{remove all rows where SE / (point estimate) > 0.5, or
+where SE does not exist}
+
 \item{save}{excel spreadsheet output required (TRUE / FALSE)}
 
-\item{name_out}{name of excel spreadsheet to be ouput (requires save = TRUE)}
+\item{name.out}{name of excel spreadsheet to be ouput (requires save = TRUE)}
 }
 \value{
 data.frame and (optional) excel spreadsheet with tidied data
@@ -34,5 +45,5 @@ spreadsheets released alongside the statutory reporting.
  sheets = c(2, 3, 4, 5)
  df <- tidyData(name = "WRK.EMP.1.xlsx", sheets = sheets, 
                 skip = 10, path = "", save = TRUE,
-                name_out = "WRK.EMP.1_employment")
+                name.out = "WRK.EMP.1_employment")
 }
