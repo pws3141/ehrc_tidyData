@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# excel files including macros and templates
+*.[xX][lL][sS][xXmMtT]?

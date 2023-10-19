@@ -1,3 +1,7 @@
+# Overview of package changes
+This file documents the major changes done to the functions between each package
+update.
+
 ## From 0.1 -> 0.2:
 
 * added DESCRIPTION file
