@@ -1,6 +1,6 @@
 Package: tidyData
 Version: 0.3
-Date: 2023-08-03
+Date: 2023-10-19
 Title: EHRC Tidy Data
 Description: Function to tidy EHRC data tables released alongside statutory report.
 Author: Paul Smith [aut, cre]

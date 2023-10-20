@@ -47,9 +47,10 @@ tidyData <- function(name, sheets, skip = 10, path = "", clean = TRUE,
   sheet_names <- readxl::excel_sheets(name)
   # formatting names: remove 'Table X' and numbers
   # remove 'Table'
-  sheet_names <- gsub("^\\s*Table\\s*", "", sheet_names)
+  sheet_names <- sub("^\\s*Table\\s*", "", sheet_names)
   # remove numbers
-  sheet_names <- gsub("^\\d{1,2}\\s*", "", sheet_names)
+  #sheet_names <- gsub("^\\d{1,2}\\s*", "", sheet_names)
+  sheet_names <- sub(".*? ", "", sheet_names)
   
   if (length(sheets) > 1) {
     cat(sprintf("Number of sheets required is %d\n", length(sheets)))
@@ -102,10 +103,11 @@ tidyData <- function(name, sheets, skip = 10, path = "", clean = TRUE,
 #' @import plyr
 #' 
 #' @export
-tidyDataMerge <- function(tidy.list, domain, indicator, save = FALSE,
-                          name.out = "output_merged") {
+tidyDataMerge <- function(tidy.list, domain, indicator,
+                save = FALSE, name.out = "output_merged") {
         # colapse list into data.frame
         # first, need to add new column with country
+        countries <- names(tidy.list)
         tidy.list <- lapply(seq_along(tidy.list), function(y, n, i) {
                                 out <- cbind(rep_len(n[[i]], length.out = nrow(y[[i]])),
                                              y[[i]])
@@ -115,11 +117,21 @@ tidyDataMerge <- function(tidy.list, domain, indicator, save = FALSE,
                         )
         # 'rbind.fill' adds columns not present in all outputs
         tidy_df <- plyr::rbind.fill(tidy.list)
-        # add domain and indication
+        # add domain and indication, and var information
+        # if GB present, then set between = Yes, otherwise No
+        var.between <- "No"
+        if ("Great Britain" %in% countries) {
+                var.between <- "Yes"
+        }
+
         tidy_df <- cbind(rep_len(domain, length.out = nrow(tidy_df)),
                         rep_len(indicator, length.out = nrow(tidy_df)),
-                        tidy_df)
+                        tidy_df,
+                        rep_len(var.between, length.out = nrow(tidy_df))
+                        )
         names(tidy_df)[1:2] <- c("domain", "indicator")
+        ncol_df <- ncol(tidy_df)
+        names(tidy_df)[ncol_df] <- "between"
         if (save == TRUE) {
                 res_excel <- list()
                 res_excel[[sprintf("%s_%s", domain, indicator)]] <- tidy_df
@@ -129,43 +141,6 @@ tidyDataMerge <- function(tidy.list, domain, indicator, save = FALSE,
         }
         return(df)
 }
-
-#' Merging a list of tidy data frames from different domains and indicators
-
-#' Merge data frames coersed into list, obtained from multiple runs of
-#' 'tidyDataMerge' into a single data frame including new column for 'measure' (i.e.
-#' percentage, median income etc.)
-#' 
-#' @param tidy.list list of data frames obtained from 'tidyDataMerge' function (run
-#' on different domains and indicator)
-#' @param save excel spreadsheet output required (TRUE / FALSE)
-#' @param name.out name of excel spreadsheet to be ouput (requires save = TRUE)
-#' 
-#' @return data.frame of merged list, and (optional) excel spreadsheet
-#' 
-#' @import writexl
-#' @import plyr
-#' 
-#' @export
-tidyDataMergeAll <- function(tidy.list, save = FALSE,
-                          name.out = "output_merged") {
-        # 'rbind.fill' adds columns not present in all outputs
-        tidy_df <- plyr::rbind.fill(tidy.list)
-        # add domain and indication
-        tidy_df <- cbind(rep_len(domain, length.out = nrow(tidy_df)),
-                        rep_len(indicator, length.out = nrow(tidy_df)),
-                        tidy_df)
-        names(tidy_df)[1:2] <- c("domain", "indicator")
-        if (save == TRUE) {
-                res_excel <- list()
-                res_excel[[sprintf("%s_%s", domain, indicator)]] <- tidy_df
-                name.out <- paste0(name.out, ".xlsx")
-                cat(sprintf("Saving data to %s\n", name.out))
-                writexl::write_xlsx(res_excel, name.out)
-        }
-        return(df)
-}
-
 
 #### additional info and test code
 

@@ -2,7 +2,6 @@
 
 export(tidyData)
 export(tidyDataMerge)
-export(tidyDataMergeAll)
 import(plyr)
 import(readxl)
 import(reshape2)
