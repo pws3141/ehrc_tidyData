@@ -38,12 +38,3 @@ data.frame and (optional) excel spreadsheet with tidied data
 Creates a data.frame and an (optional) excel spreadsheet with data from the EHRC
 spreadsheets released alongside the statutory reporting.
 }
-\examples{
- df <- tidyData(name = "WRK.EMP.1.xlsx", sheets = 2, 
-                skip = 10, path = "", save = TRUE)
- 
- sheets = c(2, 3, 4, 5)
- df <- tidyData(name = "WRK.EMP.1.xlsx", sheets = sheets, 
-                skip = 10, path = "", save = TRUE,
-                name.out = "WRK.EMP.1_employment")
-}

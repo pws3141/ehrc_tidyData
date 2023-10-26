@@ -1,6 +1,7 @@
 ### Utility functions  for 'tidyData'
 
-# change name of groups that appear more than once
+# change name of groups so that duplicated groups are distinct
+# preend '(x categories)' to end 
 .duplicateGroups <- function(groups) {#{{{
   # Aim: find duplicated groups, separated by NA
   #     rename these groups by appending a number to duplicates
@@ -85,11 +86,14 @@
     years_df <- data.frame(do.call('rbind', strsplit(as.character(years_df), '/', fixed = TRUE)))
     # could use 'separate' here, but would need to transpose data frame first
     years_df <- sapply(years_df, as.numeric)
-    years_df[, 2] <- years_df[, 2] + 2000
+    # if in format 2011/12, then need to 'add 2000' to the '12' part
+    # if in format 2011/2012, then can leave alone
+    if (all(years_df[, 2] < 2000, na.rm = TRUE)) years_df[, 2] <- years_df[, 2] + 2000
     years_df <- as.data.frame(t(years_df))
   } else if (years_singular) {
     # split by deliminator
     years <- as.numeric(years_df)
+    # assume each data point is a one year period
     years_df <- rbind(years - 1, years)
   } else {
     stop("years not in consistent format 20xx/xx or 20xx")
@@ -109,8 +113,9 @@
 
   # replace % with 'perc'
   statistics <- gsub("%", "perc", statistics)
-  # if statistic is 'Per_100' or similar, replace with 'perc'
-  statistics <- gsub("(?i)per_?100", "perc", statistics)
+  # if statistic is 'Per_100' replace with 'perc'
+  # if 'Per_1000', 'Per_10000' etc, leave along
+  statistics <- gsub("(?i)per_?100$", "perc", statistics)
 
   # remove brackets and everything within
   statistics <- gsub(r"{\s*\([^\)]+\)}","", statistics)
@@ -146,11 +151,13 @@
   
   # replace unnecessary  punctuation and words with 'NA'
   # first, remove any leading or trailing space
+  ## trims leading and trailing whitespace from all character columns 'df'
+  ## without modifying other columns that are not of character type.
   cols_characters <- which(vapply(df, is.character, logical(1)) == TRUE)
   df[, cols_characters] <- lapply(df[, cols_characters], stringr::str_trim)
-  # now, remove punct and words 
-  to_remove <- c("-", "*", "**", "***", ".", "END", "Stars", "Blank")
 
+  # now, remove punct and words 
+  to_remove <- c("-", "'", "*", "**", "***", ".", "END", "Stars", "Blank")
   for (rem in to_remove) {
           which_ind <- which(df == rem, arr.ind = TRUE)
           df[which_ind] <- NA
@@ -169,6 +176,7 @@
   years_df <- .tidyYears(years)
   
   # replace years row of df with the two new rows
+  # 'year_beg' and 'year_end'
   colnames(years_df) <- colnames(df)
   df <- rbind(years_df, df[-1, ])
   
@@ -218,7 +226,7 @@
         # or where SE does not exist
 
         # se column is consistent, but sometimes point estimate is percentage,
-        # sometimes something else.
+        # sometimes something else, e.g. per_1000, or £
         # but it is always the column that preceeds 'se',
         # so find 'se' column to find point estimate column
         which_col_se <- which(names(df) == "se")

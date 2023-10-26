@@ -21,4 +21,9 @@ returned from 'tidyData'
 * Removed 'Table X' from name of each list element in 'tidyData', and from output worksheet
 name
 
-
+## From 0.3 -> 0.4
+* added ability to merge sheets with the same name, for when we have different
+worksheets for excl_SO and incl_SO data
+    * nb: for this to work, require no duplicate levels so manual editing of data
+    tables is required.
+* truncated worksheet name in 'tidyDataMerge' if >31 characters, to avoid error in 'write_xlsx'

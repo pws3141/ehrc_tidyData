@@ -3,6 +3,7 @@
 export(tidyData)
 export(tidyDataMerge)
 import(plyr)
+import(purrr)
 import(readxl)
 import(reshape2)
 import(stats)

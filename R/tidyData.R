@@ -15,14 +15,6 @@
 #'
 #' @return data.frame and (optional) excel spreadsheet with tidied data
 #'
-#' @examples
-#'  df <- tidyData(name = "WRK.EMP.1.xlsx", sheets = 2, 
-#'                 skip = 10, path = "", save = TRUE)
-#'  
-#'  sheets = c(2, 3, 4, 5)
-#'  df <- tidyData(name = "WRK.EMP.1.xlsx", sheets = sheets, 
-#'                 skip = 10, path = "", save = TRUE,
-#'                 name.out = "WRK.EMP.1_employment")
 #' @import stats
 #' @import readxl
 #' @import reshape2
@@ -30,6 +22,7 @@
 #' @import writexl
 #' @import plyr
 #' @import stringr
+#' @import purrr
 
 #' @export
 tidyData <- function(name, sheets, skip = 10, path = "", clean = TRUE,
@@ -51,6 +44,7 @@ tidyData <- function(name, sheets, skip = 10, path = "", clean = TRUE,
   # remove numbers
   #sheet_names <- gsub("^\\d{1,2}\\s*", "", sheet_names)
   sheet_names <- sub(".*? ", "", sheet_names)
+
   
   if (length(sheets) > 1) {
     cat(sprintf("Number of sheets required is %d\n", length(sheets)))
@@ -75,8 +69,25 @@ tidyData <- function(name, sheets, skip = 10, path = "", clean = TRUE,
     cat(sprintf("\ttidying sheet %d: %s\n", sheets, sheet_names[sheets]))
     df_tmp <- .tidyDataFrame(df = df_tmp)
     if (clean == TRUE) df_tmp <- .tidyDataClean(df_tmp)
-    df <- setNames(list(df), sheet_names[sheets])
+    df <- setNames(list(df_tmp), sheet_names[sheets])
   }
+
+  # merge sheets that have same name
+  # required when SO data e.g. Table 1a and Table 1b etc
+  #df_merge <- list()
+  #for (name in unique(names(df))) {
+  #df_merge[[name]] <- purrr::list_rbind(df[name == names(df)])
+  #}
+  # without using loops
+  #    split(names(.)) splits the input list df into smaller lists based on unique names
+  #    map(~ reduce(.x, rbind)) applies the reduce() function to each smaller list,
+  #       where reduce() combines the data frames using rbind() without the need for explicit loops.
+  if (length(sheets) > 1) {
+          df <- df %>%
+                  split(names(.)) %>%
+                  purrr::map(~ purrr::reduce(.x, rbind))
+  }
+
   if (save == TRUE) {
     name.out <- paste0(name.out, ".xlsx")
     cat(sprintf("Saving data to %s\n", name.out))
@@ -134,7 +145,12 @@ tidyDataMerge <- function(tidy.list, domain, indicator,
         names(tidy_df)[ncol_df] <- "between"
         if (save == TRUE) {
                 res_excel <- list()
-                res_excel[[sprintf("%s_%s", domain, indicator)]] <- tidy_df
+                # excel worksheets names max 30 chars, so truncate if required
+                worksheet_name <- sprintf("%s_%s", domain, indicator)
+                worksheet_name <- ifelse(nchar(worksheet_name) > 30,
+                                    paste0(substring(worksheet_name, 1, 27), "..."),
+                                    worksheet_name)
+                res_excel[[worksheet_name]] <- tidy_df
                 name.out <- paste0(name.out, ".xlsx")
                 cat(sprintf("Saving data to %s\n", name.out))
                 writexl::write_xlsx(res_excel, name.out)
@@ -161,14 +177,31 @@ source("tidyData.R")
 #  time.taken
   
   
-sheets = c(2, 3, 4, 5)
-df <- tidyData(name = "WRK.EMP.1.xlsx", sheets = sheets, 
-                 skip = 10, path = "", save = TRUE,
-                 name.out = "output2")
+sheets = c(2, 3, 18, 19)
+df <- tidyData(name = "EDU.EBN.2.xlsx", sheets = sheets, 
+                skip = 10, path = "", save = TRUE,
+                name.out = "output2")
 
 df_merged <- tidyDataMerge(tidy.list = df, domain = "Work",
-                           indicator = "Employment", save = TRUE,
-                          name.out = "output_merged")
+        indicator = "Employment", save = TRUE,
+        name.out = "output_merged")
 
+
+df <- tidyData(name = "WRK.OCS.2.xlsx",
+                sheets = 3, skip = 10, path = "", save = TRUE,
+                name.out = "output3")
+
+df <- tidyData(name = "EDU.HLL.2.xlsx",
+                sheets = c(2, 3, 4, 5, 18, 19, 20, 21), 
+                skip = 10, path = "", save = TRUE,
+                name.out = "output4")
+
+df <- tidyData(name = "HLT.MLT.1A.xlsx",
+                sheets = 4, skip = 10, path = "", save = TRUE,
+                name.out = "output5")
+
+df <- tidyData(name = "HLT.MTL.2A.xlsx",
+                sheets = 3, skip = 10, path = "", save = TRUE,
+                name.out = "output6")
   
 } ## end if (TEST) 
